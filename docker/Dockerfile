@@ -69,6 +69,8 @@ RUN echo "export CXX=/usr/bin/clang++" >> ~/.bashrc && \
     echo "export CC=/usr/bin/clang" >> ~/.bashrc && \
     echo "export SYSTEMC_HOME=/opt/systemc/systemc-2.3.3" >> ~/.bashrc
 
+RUN apt install libjpeg-dev zlib1g-dev python3-pip -y
+
 ENV SYSTEMC_HOME=/opt/systemc/systemc-2.3.3
 ENV CXX=/usr/bin/clang++ 
 ENV CC=/usr/bin/clang 
@@ -113,3 +115,6 @@ RUN echo "echo 'Welcome to the AXI4MLIR tools container'" >> ~/.bashrc && \
     echo "echo 'NOTE:'" >> ~/.bashrc && \
     echo "echo '    /working_dir folder was volume mounted'" >> ~/.bashrc && \
     echo "echo ' '" >> ~/.bashrc 
+
+# Install python packages to generate plots
+RUN pip3 install numpy==1.19 matplotlib==3.3 pandas==1.1
