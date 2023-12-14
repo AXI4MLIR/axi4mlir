@@ -83,15 +83,30 @@ After running the tasks, the script will copy the results back to the host devic
 We can use these results (csv files) to re-generate graphs presented in the paper.
 
 # Analysis
-Each experiment contains an "analysis" folder, which will contain the original data that was generated for the paper. Additionally, we include two notebooks; both will generate the relevant graphs from the experiment. 
+Each experiment contains an "analysis" folder, which will contain the original
+data that was generated for the paper. Additionally, we include two Jupyter
+notebooks and two python scripts; both will generate the relevant graphs/plots
+presented in experiment. 
 
-To use the notebooks, please set up the conda environment using the following commands or run the first cell (containing the pip3 command) of any of the notebooks to install the required Python packages.
+All dependencies are already installed inside the Docker container for the
+*python scripts*. The python scripts can be executed with variations of the
+command below:
 
+```bash
+$ ./start_docker.sh
+$ cd experiments/ex1/analysis
+$ python3 ex1-generate-paper-graphs.py
 ```
-conda create -n bench python=3 pandas matplotlib numpy
-conda activate bench
+
+To use the notebooks, please set up the conda environment in your system using
+the following commands, or run the first cell (containing the pip3 command) of
+any of the notebooks to install the required Python packages.
+
+```bash
+$ conda create -n bench python=3 pandas matplotlib numpy
+$ conda activate bench
 ```
 
-The notebook (marked with "paper") will use the original data and save figures in an output folder. The other notebook (marked with "new") will use newly generated results from the PYNQ board to recreate the figures.
-
-
+The notebook or script (marked with "paper") will use the original data and save
+figures in an output folder. The other notebook or script (marked with "new")
+will use generated results from the PYNQ board to recreate the figures.
