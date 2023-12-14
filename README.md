@@ -7,10 +7,10 @@ A custom MLIR dialect for generating host driver code for AXI-based linalg accel
 ## Step 0 - Clone repo
 
 ```
-git clone -b cgo2024_artifact https://github.com/judeharis/axi_mlir.git axi4mlir
+git clone -b cgo2024_artifact https://github.com/AXI4MLIR/axi4mlir.git
 cd axi4mlir
 git submodule init
-git submodule update
+git submodule update --depth 1
 ```
 
 ## Step 1 - Build docker image
@@ -29,7 +29,7 @@ git submodule update
 ## Step 3 - Experiments
 
 Now that you have all the required binaries built, you can reproduce experiments from the paper.
-The experiments [readme](https://github.com/judeharis/axi_mlir/tree/cgo2024_artifact/experiments/README.md) and the paper's artifact appendix provide the details required to compile and run the experiments. 
+The experiments [readme](https://github.com/AXI4MLIR/axi4mlir/tree/cgo2024_artifact/experiments/README.md) and the paper's artifact appendix provide the details required to compile and run the experiments. 
 
 ---
 
@@ -37,24 +37,24 @@ The experiments [readme](https://github.com/judeharis/axi_mlir/tree/cgo2024_arti
 ## AXI4MLIR library
 Here are some of the key files where AXI4MLIR is defined within the llvm-project:
 
-[Accel Dialect](https://github.com/agostini01/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/include/mlir/Dialect/Accel/IR/AccelOps.td)
+[Accel Dialect](https://github.com/AXI4MLIR/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/include/mlir/Dialect/Accel/IR/AccelOps.td)
 
-[New Attributes](https://github.com/agostini01/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/lib/Parser/OpcodeParser.cpp#L157)
+[New Attributes](https://github.com/AXI4MLIR/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/lib/Parser/OpcodeParser.cpp#L157)
 
-[DMA Library](https://github.com/agostini01/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/include/mlir/ExecutionEngine/AxiUtils.h)
+[DMA Library](https://github.com/AXI4MLIR/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/include/mlir/ExecutionEngine/AxiUtils.h)
 
-[Linalg to Accel transformation pass](https://github.com/agostini01/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/lib/Conversion/LinalgToAXI4MLIR/LinalgGenericToAccel.cpp)
+[Linalg to Accel transformation pass](https://github.com/AXI4MLIR/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/lib/Conversion/LinalgToAXI4MLIR/LinalgGenericToAccel.cpp)
 
 
-[Accel to AXI4MLIR DMA library transformation pass](https://github.com/agostini01/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/lib/Conversion/LinalgToAXI4MLIR/AccelToAXI4MLIR.cpp)
+[Accel to AXI4MLIR DMA library transformation pass](https://github.com/AXI4MLIR/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/lib/Conversion/LinalgToAXI4MLIR/AccelToAXI4MLIR.cpp)
 
-[Current Function Prototypes](https://github.com/agostini01/llvm-project/blob/axi4mlir/mlir/include/mlir/ExecutionEngine/axi/api_v1.h)
+[Current Function Prototypes](https://github.com/AXI4MLIR/llvm-project/blob/axi4mlir/mlir/include/mlir/ExecutionEngine/axi/api_v1.h)
 
-[Example](https://github.com/agostini01/llvm-project/blob/axi4mlir/mlir/test/axi4mlir-runner/run-matmul-v1accel.mlir)
+[Example](https://github.com/AXI4MLIR/llvm-project/blob/axi4mlir/mlir/test/axi4mlir-runner/run-matmul-v1accel.mlir)
 
-[Available Options (end of the file)](https://github.com/agostini01/llvm-project/blob/axi4mlir/mlir/include/mlir/Conversion/Passes.td)
+[Available Options (end of the file)](https://github.com/AXI4MLIR/llvm-project/blob/axi4mlir/mlir/include/mlir/Conversion/Passes.td)
 
-Tests [1](https://github.com/agostini01/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/test/axi4mlir-runner/accelerators/matmul-v4-Cs.mlir) & [2](https://github.com/agostini01/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/test/axi4mlir-runner/accel-to-runtime.mlir)
+Tests [1](https://github.com/AXI4MLIR/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/test/axi4mlir-runner/accelerators/matmul-v4-Cs.mlir) & [2](https://github.com/AXI4MLIR/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/test/axi4mlir-runner/accel-to-runtime.mlir)
 
 
 ---
@@ -89,7 +89,7 @@ Execute the following commands where you want to have a copy of the LLVM project
 To setup the project, use:
 
 ```shell
-$ git clone https://github.com/judeharis/axi_mlir.git axi4mlir
+$ git clone https://github.com/AXI4MLIR/axi4mlir.git axi4mlir
 $ cd axi4mlir
 $ git submodule init
 $ git submodule update
@@ -130,7 +130,7 @@ This will generate 2 files:
 ## MLIR Example
 
 An example of using the API from a MLIR file can be found
-[here](https://github.com/agostini01/llvm-project/blob/axi4mlir/mlir/test/axi4mlir-runner/run-matmul-v1accel.mlir).
+[here](https://github.com/AXI4MLIR/llvm-project/blob/axi4mlir/mlir/test/axi4mlir-runner/run-matmul-v1accel.mlir).
 
 
 ## Installing SystemC
