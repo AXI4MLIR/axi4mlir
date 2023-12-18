@@ -56,6 +56,13 @@ Here are some of the key files where AXI4MLIR is defined within the llvm-project
 
 Tests [1](https://github.com/AXI4MLIR/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/test/axi4mlir-runner/accelerators/matmul-v4-Cs.mlir) & [2](https://github.com/AXI4MLIR/llvm-project/blob/f2172866a5c47516dd4f4b823c7a75c96821f6f7/mlir/test/axi4mlir-runner/accel-to-runtime.mlir)
 
+## Guides
+
+Here are some relevant guides to get started with AXI4MLIR:
+
+- [Enabling a new accelerator compatible with AXI4MLIR](guides/pynq-setup.md)
+- [Create opcode maps and flows for custom accelerators](guides/using-axi4mlir.md)
+
 
 ---
 
