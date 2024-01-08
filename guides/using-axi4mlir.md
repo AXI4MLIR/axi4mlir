@@ -263,9 +263,11 @@ scf.for %arg3 = %c0 to %c16 step %c4 {
 Check the relevant files for this example in the following links:
 
 - [Source Code](code/example0.mlir)
-  - See the preamble of the file for the commands to run the transformations.
-- [Generated Accel code for no-reuse](code/example0-NS.accel.mlir)
+  - See the preamble of the file for the commands to perform the transformations.
+- [Generated Accel code without data reuse](code/example0-NS.accel.mlir)
 - [Generated Accel code with reuse of C](code/example0-CS.accel.mlir)
+- [Generated code with calls to DMA library without data reuse](code/example0-NS.withcalls.mlir)
+- [Generated code with calls to DMA library with reuse of C](code/example0-CS.withcalls.mlir)
 
 ### Additional supported opcodes
 
