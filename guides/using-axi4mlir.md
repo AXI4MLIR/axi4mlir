@@ -38,7 +38,7 @@ func @matmul_call(%A: memref<16x8xi32>, %B: memref<8x32xi32>, %C: memref<16x32xi
 }
 ```
 
-Which during AXI4MLIR transformations may take the following form:
+Which may take the following form during AXI4MLIR transformations:
 
 ```mlir
 matmul_trait = {
@@ -46,9 +46,9 @@ matmul_trait = {
   accel_dmaAddress = 41,
   accel_dmaInputBufferSize = 42,
   accel_dmaOutputAddress = 43,
-  accel_loop_permutation = [0,2,1],
+  accel_loop_permutation = [0,2,1], // Changes loops (m, n, k) to (m, k, n)
   accel_accel_tile_size = 4,
-  // accel_acc_on_cpu = true, // TODO: True is not working
+  accel_acc_on_cpu = 2, // Accumulates received data on data structure 2: C
   accel_opcode_map_str = "opcode_map<s0=[op_send(0)], s1=[op_send(1)], s2=[op_send(2)], r2=[op_recv(2)], s0s1s2r2=[op_send(0), op_send(1), op_send(2), op_recv(2)]>",
   accel_init_flow_str = "reset",
   accel_opcode_flow_str = "(s0 (s1 r2))",
@@ -78,10 +78,10 @@ func @matmul_call(%A: memref<16x8xi32>, %B: memref<8x32xi32>, %C: memref<16x32xi
 
 ## Accelerator description
 
-In this example we use a matrix multiplication accelerator that takes two 4x4
+In this example, we use a matrix multiplication accelerator that takes two 4x4
 matrices as input and produces a 4x4 matrix as output. The accelerator is
 implemented in SystemC and exported as an IP to be used in Vivado or Vitis. See
-[pynq-setup.md](../guides/pynq-setup.md) for more information on how to setup
+[pynq-setup.md](../guides/pynq-setup.md) for more information on setting up
 the accelerator.
 
 The implementation for our accelerator is shown
@@ -90,16 +90,16 @@ The implementation for our accelerator is shown
 The accelerator has support for different instructions/opcodes. The opcode
 values and their meaning are defined
 [here](https://github.com/AXI4MLIR/llvm-project/blob/16eaaaeedbeda17a77387edbb1da96ce8e95f15e/mlir/include/mlir/ExecutionEngine/axi/accelerators/mm_4x4_v3/mm_4x4_v3.json#L83C3-L83C3).
-Any opcode or data sent to the accelerator, i.e. received by the accelerator,
+Any opcode or data sent to the accelerator, i.e., received by the accelerator,
 goes through DMA fifo `0`, using the AXI4-Stream interface. Any data sent by the
-accelerator, i.e. received by the CPU, goes through DMA fifo `1`, using the
-AXI4-Stream interface. The json helper file has keywords from the perspective of
-the accelerator, i.e. during `READ`, the accelerator is reading data from the
+accelerator, i.e., received by the CPU, goes through DMA fifo `1`, using the
+AXI4-Stream interface. The JSON helper file has keywords from the perspective of
+the accelerator, i.e., during `READ`, the accelerator is reading data from the
 DMA stream, and during `SEND`, the accelerator is sending data to the DMA
 stream.
 
 For example, when the accelerator reads opcode `1` from the DMA stream, it will
-consider the next 16 values as the (tile of) matrix A and store them in a
+consider the subsequent 16 values as the (tile of) matrix A and store them in a
 [special buffer](https://github.com/AXI4MLIR/llvm-project/blob/16eaaaeedbeda17a77387edbb1da96ce8e95f15e/mlir/include/mlir/ExecutionEngine/axi/accelerators/mm_4x4_v3/accelerator.sc.h#L168)
 inside the accelerator. We call this buffer: `#A_Buffer`. 
 
@@ -119,7 +119,7 @@ inside the accelerator. We call this buffer: `#A_Buffer`.
 Then, after completing this instruction, the accelerator will wait for the next
 opcode to be read from the DMA input stream.
 
-In a similar way, when the accelerator reads the opcode `2` from the DMA stream,
+Similarly, when the accelerator reads the opcode `2` from the DMA stream,
 it will expect the contents of the 16 values of matrix B to follow. Once
 received, the accelerator will store the contents of the matrix B in the
 `#B_Buffer` for later use.
@@ -163,7 +163,7 @@ into the DMA stream.
 
 ## Accelerator in AXI4MLIR
 
-With the opcodes above, the accelerator can be used to compute the matrix
+With the opcodes above, the accelerator can compute the matrix
 multiplication of two 4x4 matrices, and send the result 4x4 matrix back to the
 CPU.
 
@@ -230,7 +230,7 @@ for (int i = 0; i < 4; i++) {
 ### Additional supported opcodes
 
 The accelerator implemented [here](https://github.com/AXI4MLIR/llvm-project/blob/16eaaaeedbeda17a77387edbb1da96ce8e95f15e/mlir/include/mlir/ExecutionEngine/axi/accelerators/mm_4x4_v3/accelerator.sc.h) with opcodes described [here](https://github.com/AXI4MLIR/llvm-project/blob/16eaaaeedbeda17a77387edbb1da96ce8e95f15e/mlir/include/mlir/ExecutionEngine/axi/accelerators/mm_4x4_v3/mm_4x4_v3.json#L83C3-L83C3)
-has support for additional opcodes and flows. The complete set of opcodes is given by the following opcode map:
+has support for additional opcodes and flows. The following opcode map shows the complete set of opcodes:
 
 ```mlir
 #my_opcodes = opcode_map< 
@@ -253,7 +253,7 @@ has support for additional opcodes and flows. The complete set of opcodes is giv
 ```
 
 These opcodes allow the accelerator to support different data reuse patterns,
-such as keeping nothing in memory, or keeping one of the matrices A, B, or C in
+such as keeping nothing in memory or keeping one of the matrices A, B, or C in
 memory. The following opcode flows are supported:
 
 ```mlir
@@ -274,19 +274,21 @@ memory. The following opcode flows are supported:
 
 Note that `*_option_0` flows require more opcodes than `*_option_1` and
 `*_option_2` flows. This is because the `*_option_0` flows send one instruction
-before each data transfer and to trigger the computation, while the
-`*_option_2`, such as `A_stationary_option2`, sends one instruction before
-sending the data associated with the A tile to keep it in memory, then, in the
-innermost loop, sends another instruction to tell the accelerator to expect the
-B tile, to start the computation, and, once the computation is done, to send the
-result back to the CPU.
+before each data transfer to trigger the computation, while the `*_option_2`,
+such as `A_stationary_option2`, sends one instruction before sending the data
+associated with the A tile that is kept in memory for several iterations,
+then, in the innermost loop, sends another instruction to tell the accelerator
+to expect the B tile, to start the computation, and, once the computation is
+done, to send the result back to the CPU.
 
 ### Additional remarks
 
 #### Loop permutation
 
-In order to enable a particular opcode flow, the user has to specify a correct permutation of the loops in the linalg operation.
-This is achived with the `loop_permutation` attribute. For example, to enable the `A_stationary_option0` flow, given the `indexing_maps` attribute of a `linalg.generic` operation:
+To enable a particular opcode flow, the user has to specify a correct
+permutation of the loops in the linalg operation.  This is achieved with the
+`loop_permutation` attribute. For example, to enable the `A_stationary_option0`
+flow, given the `indexing_maps` attribute of a `linalg.generic` operation:
 
 ```mlir
 indexing_maps = [
@@ -309,7 +311,7 @@ Depending on the data reuse pattern, the user may want to accumulate the results
 on the CPU. This can be achieved with the `acc_on_cpu` attribute. For example,
 to enable the `A_stationary_option0` flow, `acc_on_cpu` should be set to `2`,
 indicating that the results coming from the accelerator should be accumulated on
-the (tile of) data structure `2` of the linalg operation.  The following option
+the (tile of) data structure `2` of the linalg operation. The following option
 will trigger host code generation that accumulates the results on the CPU. 
 
 ```mlir
@@ -350,7 +352,7 @@ mlir-opt \
   -o accel.mlir
 ```
 
-Transform accel operations into calls to our DMA library:
+To transform `accel`` operations into calls to our DMA library, use:
 
 ```bash
 mlir-opt \
@@ -362,6 +364,7 @@ mlir-opt \
 Additional lowering passes to transform the generated code into LLVM dialect:
 
 ```bash
+# Updated as of llvm-project version 12
 mlir-opt \
   -convert-linalg-to-loops -lower-affine \
   --buffer-loop-hoisting --buffer-deallocation \
@@ -389,7 +392,6 @@ mlir-translate \
 ```
 
 Finally, we can generate the object file, library, and binary. 
-
 
 ```bash
 # Create an object file for "library"
@@ -425,6 +427,6 @@ $PROJ_ROOT/builds/llvm-project/build-x86/bin/clang++ -o app \
 For more details on additional compilation steps, see scripts:
 
 - [For pynq deployment](../experiments/ex1/compile_pynq.sh)
-- [For SytemC simulation](../experiments/ex1/compile_sysc.sh)
+- [For SystemC simulation](../experiments/ex1/compile_sysc.sh)
 - [Example of C++ driver](../experiments/ex1/srcs/matmul_driver_v3.cc)
   - If `mlir` is compiled as a shared library as above.
