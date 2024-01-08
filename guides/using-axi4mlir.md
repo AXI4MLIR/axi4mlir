@@ -1,7 +1,8 @@
 # Using AXI4MLIR Extensions
 
-This guide demonstrates how to use AXI4MLIR extensions to generate code for a matrix
-multiplication linear algebra operation. The matrix multiplication in `mlir` looks like this:
+This guide demonstrates how to use AXI4MLIR extensions to generate code for a
+matrix multiplication linear algebra operation. The matrix multiplication in
+`mlir` looks like this:
 
 ```mlir
 func @matmul_call(%A: memref<16x8xi32>, %B: memref<8x32xi32>, %C: memref<16x32xi32>) {
@@ -9,6 +10,7 @@ func @matmul_call(%A: memref<16x8xi32>, %B: memref<8x32xi32>, %C: memref<16x32xi
    ins(%A, %B: memref<16x8xi32>, memref<8x32xi32>)
    outs(%C: memref<16x32xi32>)
   return
+}
 ```
 
 Or, using its `linalg.generic`` form:
@@ -181,31 +183,54 @@ accelerator.
 >
 ```
 
-With these available opcodes, a valid `opcode_flow` to perform the matrix multiplication is:
+With these available opcodes, a valid `opcode_flow` to perform the matrix
+multiplication is:
 
 ```mlir
 #my_opcode_flow = (sendA sendB compute recvC)
 ```
 
-This will generate all the necessary data transfers inside the innermost loop of the matrix multiplication. The `op_send_literal` opcodes are used to send the literal values `1`, `2`, `4`, and `8` to the accelerator. The `op_send` and `op_recv` opcodes are used to send the data from the `A`, `B`, and `C` buffers, which are in the positions `0`, `1`, and `2` of a linear algebra operation we want to accelerate.
+This will generate all the necessary data transfers inside the innermost loop of
+the matrix multiplication. The `op_send_literal` opcodes are used to send the
+literal values `1`, `2`, `4`, and `8` to the accelerator. The `op_send` and
+`op_recv` opcodes are used to send the data from the `A`, `B`, and `C` buffers,
+which are in the positions `0`, `1`, and `2` of a linear algebra operation we
+want to accelerate.
 
 This opcode and flow translates to the following:
 
 ```mlir
-// TODO: add MLIR code after the transformation into the ACCEL dialect
-for (int i = 0; i < 4; i++) {
-  for (int j = 0; j < 4; j++) {
-    for (int k = 0; k < 4; k++) {
-      sendA(i, k, A[i][k]);
-      sendB(k, j, B[k][j]);
-      compute(i, j, k);
-      recvC(i, j, C[i][j]);
+scf.for %arg3 = %c0 to %c16 step %c4 {
+  scf.for %arg4 = %c0 to %c8 step %c4 {
+    scf.for %arg5 = %c0 to %c32 step %c4 {
+      %0 = accel.sendLiteral %c1_i32, %c0_i32 : (i32, i32) -> i32
+      %1 = memref.subview %arg0[%arg3, %arg5] [4, 4] [1, 1] : memref<16x32xi32> to memref<4x4xi32, #map0>
+      %2 = memref.cast %1 : memref<4x4xi32, #map0> to memref<?x?xi32, #map0>
+      %3 = accel.send %2, %0 : (memref<?x?xi32, #map0>, i32) -> i32
+      %4 = accel.sendLiteral %c2_i32, %c0_i32 : (i32, i32) -> i32
+      %5 = memref.subview %arg1[%arg5, %arg4] [4, 4] [1, 1] : memref<32x8xi32> to memref<4x4xi32, #map1>
+      %6 = memref.cast %5 : memref<4x4xi32, #map1> to memref<?x?xi32, #map1>
+      %7 = accel.send %6, %4 : (memref<?x?xi32, #map1>, i32) -> i32
+      %8 = accel.sendLiteral %c4_i32, %c0_i32 : (i32, i32) -> i32
+      %9 = accel.sendLiteral %c8_i32, %c0_i32 : (i32, i32) -> i32
+      %10 = memref.subview %arg2[%arg3, %arg4] [4, 4] [1, 1] : memref<16x8xi32> to memref<4x4xi32, #map1>
+      %11 = memref.alloca() : memref<4x4xi32>
+      %12 = accel.recv %11, %9 : (memref<4x4xi32>, i32) -> i32
+      
+      // Accumulation of received C (%12) on the CPU subview of C %(10)
+      // triggered with `acc-on-cpu=2` option
+      linalg.generic {indexing_maps = [#map2, #map2], iterator_types = ["parallel", "parallel"]} ins(%11 : memref<4x4xi32>) outs(%10 : memref<4x4xi32, #map1>) {
+      ^bb0(%arg6: i32, %arg7: i32):
+        %13 = arith.addi %arg6, %arg7 : i32
+        linalg.yield %13 : i32
+      }
     }
   }
 }
 ```
 
-However, with the same opcodes map, we can use a different `opcode_flow` to perform a output stationary matrix multiplication:
+However, with the same opcodes map, we can use a different `opcode_flow` to
+perform a output stationary matrix multiplication:
 
 ```mlir
 #my_opcode_flow = opcode_flow<((sendA sendB compute)  recvC)>
@@ -214,18 +239,33 @@ However, with the same opcodes map, we can use a different `opcode_flow` to perf
 This opcode and flow translates to the following:
 
 ```mlir
-// TODO: add MLIR code after the transformation into the ACCEL dialect
-for (int i = 0; i < 4; i++) {
-  for (int j = 0; j < 4; j++) {
-    for (int k = 0; k < 4; k++) {
-      sendA(i, k, A[i][k]);
-      sendB(k, j, B[k][j]);
-      compute(i, j, k);
+scf.for %arg3 = %c0 to %c16 step %c4 {
+  scf.for %arg4 = %c0 to %c8 step %c4 {
+    scf.for %arg5 = %c0 to %c32 step %c4 {
+      %4 = accel.sendLiteral %c1_i32, %c0_i32 : (i32, i32) -> i32
+      %5 = memref.subview %arg0[%arg3, %arg5] [4, 4] [1, 1] : memref<16x32xi32> to memref<4x4xi32, #map0>
+      %6 = memref.cast %5 : memref<4x4xi32, #map0> to memref<?x?xi32, #map0>
+      %7 = accel.send %6, %4 : (memref<?x?xi32, #map0>, i32) -> i32
+      %8 = accel.sendLiteral %c2_i32, %c0_i32 : (i32, i32) -> i32
+      %9 = memref.subview %arg1[%arg5, %arg4] [4, 4] [1, 1] : memref<32x8xi32> to memref<4x4xi32, #map1>
+      %10 = memref.cast %9 : memref<4x4xi32, #map1> to memref<?x?xi32, #map1>
+      %11 = accel.send %10, %8 : (memref<?x?xi32, #map1>, i32) -> i32
+      %12 = accel.sendLiteral %c4_i32, %c0_i32 : (i32, i32) -> i32
     }
-    recvC(i, j, C[i][j]);
+    %0 = accel.sendLiteral %c8_i32, %c0_i32 : (i32, i32) -> i32
+    %1 = memref.subview %arg2[%arg3, %arg4] [4, 4] [1, 1] : memref<16x8xi32> to memref<4x4xi32, #map1>
+    %2 = memref.cast %1 : memref<4x4xi32, #map1> to memref<?x?xi32, #map1>
+    %3 = accel.recv %2, %0 : (memref<?x?xi32, #map1>, i32) -> i32
   }
 }
 ```
+
+Check the relevant files for this example in the following links:
+
+- [Source Code](code/example0.mlir)
+  - See the preamble of the file for the commands to run the transformations.
+- [Generated Accel code for no-reuse](code/example0-NS.accel.mlir)
+- [Generated Accel code with reuse of C](code/example0-CS.accel.mlir)
 
 ### Additional supported opcodes
 
@@ -364,7 +404,7 @@ mlir-opt \
 Additional lowering passes to transform the generated code into LLVM dialect:
 
 ```bash
-# Updated as of llvm-project version 12
+# Updated as of llvm-project version 15
 mlir-opt \
   -convert-linalg-to-loops -lower-affine \
   --buffer-loop-hoisting --buffer-deallocation \
