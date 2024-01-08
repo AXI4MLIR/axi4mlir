@@ -4,9 +4,9 @@ A custom MLIR dialect for generating host driver code for AXI-based linalg accel
 
 Artifact companion accepted at [CGO 2024](https://conf.researchr.org/home/cgo-2024) with the paper:
 
-AXI4MLIR: User-Driven Automatic Host Code Generation for Custom AXI-Based Accelerators, 
+*AXI4MLIR: User-Driven Automatic Host Code Generation for Custom AXI-Based Accelerators, 
 N. B. Agostini, J. Haris, P. Gibson, M. Jayaweera, N. Rubin, A. Tumeo, J. Abellán, J. Cano, D. Kaeli. 
-In CGO '24: Proceedings of the 2024 IEEE/ACM International Symposium on Code Generation and Optimization
+In CGO '24: Proceedings of the 2024 IEEE/ACM International Symposium on Code Generation and Optimization*
 
 # Artifact Evaluation
 
